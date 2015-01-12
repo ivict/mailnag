@@ -7,6 +7,9 @@ from distutils.core import setup
 from distutils.cmd import Command
 from distutils.log import warn, info, error
 from distutils.command.install_data import install_data
+from distutils.command.install_lib import install_lib
+from distutils.command.install_scripts import install_scripts
+from distutils.command.install_egg_info import install_egg_info
 from distutils.command.build import build
 from distutils.sysconfig import get_python_lib
 
@@ -63,6 +66,8 @@ class BuildData(build):
 			'./Mailnag', os.path.join(PREFIX, INSTALL_LIB_DIR))
 		self._patch_file(os.path.join(BUILD_PATCH_DIR, 'common/dist_cfg.py'), os.path.join(BUILD_PATCH_DIR, 'common/dist_cfg.py'), 
 			"'.'", "'%s'" % os.path.join(PREFIX, 'bin'))
+		self.install_dir = PREFIX
+		print "####====>" + self.build_lib
 		build.run (self)
 
 
@@ -76,6 +81,7 @@ class BuildData(build):
 
 class InstallData(install_data):
 	def run (self):
+		self.install_dir = PREFIX
 		self._add_locale_data()
 		self._add_icon_data()
 		install_data.run (self)
@@ -94,6 +100,27 @@ class InstallData(install_data):
 				src_path = os.path.join(root, file)
 				dst_path = os.path.join('share/icons', os.path.dirname(src_path[len('data/icons')+1:]))
 				self.data_files.append((dst_path, [src_path]))
+
+class InstallLib(install_lib):
+	def run (self):
+		self.install_dir = self.install_dir.replace("/usr/local", PREFIX)
+		print self.install_dir
+		install_lib.run (self)
+	
+
+
+class InstallScripts(install_scripts):
+	def run (self):
+		self.install_dir = self.install_dir.replace("/usr/local", PREFIX)
+		install_scripts.run (self)
+	
+
+
+class InstallEggInfo(install_egg_info):
+	def run (self):
+		self.install_dir = self.install_dir.replace("/usr/local", PREFIX)
+		install_egg_info.run (self)
+	
 
 
 class Uninstall(Command):
@@ -118,6 +145,9 @@ setup(name=PACKAGE_NAME,
 		('share/mailnag', ['data/mailnag.png']),
 		('share/applications', [os.path.join(BUILD_PATCH_DIR, 'mailnag-config.desktop')])],
 	cmdclass={'build': BuildData, 
+			'install_lib': InstallLib,
+			'install_scripts': InstallScripts,
+			'install_egg_info': InstallEggInfo,
 			'install_data': InstallData,
 			'uninstall': Uninstall}
 	)
